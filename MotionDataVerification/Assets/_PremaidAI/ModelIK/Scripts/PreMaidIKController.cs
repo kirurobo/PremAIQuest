@@ -45,9 +45,14 @@ namespace PreMaid
                 Vector3 eular = lookAtRot.eulerAngles;
                 float yaw = eular.y - (eular.y > 180f ? 360f : 0f);
                 float pitch = eular.x - (eular.x > 180f ? 360f : 0f);
+                Quaternion rot = invBaseRotation * headTarget.rotation;
+                rot = Quaternion.AngleAxis(-pitch, Vector3.right) * Quaternion.AngleAxis(-yaw, Vector3.up) * rot;
+
+                float roll = Mathf.Asin(rot.x) * 2f * Mathf.Rad2Deg;
 
                 neckYaw.SetServoValue(yaw);
                 headPitch.SetServoValue(pitch);
+                headRoll.SetServoValue(roll);
             }
 
             public void DrawGizmos()
@@ -566,6 +571,11 @@ namespace PreMaid
         private HeadIK headIK;
         private LegIK leftLegIK;
         private LegIK rightLegIK;
+
+        // 左右の手、頭の最終的なTransformを取得できるようにします
+        public Transform leftHandTransform { get { return leftArmIK.lowerArmRoll.transform; } }
+        public Transform rightHandTransform { get { return rightArmIK.lowerArmRoll.transform; } }
+        public Transform headTransform { get { return headIK.headRoll.transform; } }
 
         private ModelJoint[] _joints;
 
