@@ -47,8 +47,14 @@ namespace PreMaid
                 float pitch = eular.x - (eular.x > 180f ? 360f : 0f);
                 Quaternion rot = invBaseRotation * headTarget.rotation;
                 rot = Quaternion.AngleAxis(-pitch, Vector3.right) * Quaternion.AngleAxis(-yaw, Vector3.up) * rot;
+                //rot = rot * Quaternion.AngleAxis(-yaw, Vector3.up) * Quaternion.AngleAxis(-pitch, Vector3.right);
 
-                float roll = Mathf.Asin(rot.x) * 2f * Mathf.Rad2Deg;
+                Debug.Log(headTarget.rotation + " : " + rot + " : " + rot.eulerAngles);
+
+                // Z軸周りだけの回転を抽出
+                rot.x = rot.y = 0f;
+                rot.Normalize();
+                float roll = Mathf.Asin(rot.z * Mathf.Sign(rot.w)) * 2f * Mathf.Rad2Deg;
 
                 neckYaw.SetServoValue(yaw);
                 headPitch.SetServoValue(pitch);

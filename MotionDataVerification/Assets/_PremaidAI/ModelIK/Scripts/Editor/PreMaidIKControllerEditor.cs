@@ -16,8 +16,6 @@ namespace PreMaid
             PreMaidIKController controller = (PreMaidIKController)target;
             if (!controller || !controller.premaidRoot) return;
 
-            Debug.Log(controller.headTransform.rotation.eulerAngles);
-
             Vector3 leftTargetRotAxis =
                 Quaternion.Inverse(controller.premaidRoot.rotation)
                 * controller.leftHandTransform.rotation
