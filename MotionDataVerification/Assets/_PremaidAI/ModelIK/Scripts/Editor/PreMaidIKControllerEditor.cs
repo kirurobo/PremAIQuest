@@ -5,15 +5,20 @@ using UnityEditor;
 
 namespace PreMaid
 {
-    [CustomEditor(typeof(PreMaidIKController))]
+    [CustomEditor(typeof(PreMaidIkController))]
     public class PreMaidIKControllerEditor : Editor
     {
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
+        }
+
         private void OnSceneGUI()
         {
             const float diskSize = 0.03f;   // 回転ハンドルのサイズ
             const float diskSnap = 1f;      // スナップするグリッドサイズとのことですが、よくわからない
 
-            PreMaidIKController controller = (PreMaidIKController)target;
+            PreMaidIkController controller = (PreMaidIkController)target;
             if (!controller || !controller.premaidRoot) return;
 
             Vector3 leftTargetRotAxis =
@@ -31,7 +36,8 @@ namespace PreMaid
                 * controller.headTransform.rotation
                 * Vector3.forward;
 
-            if (controller.priorJoint == PreMaidIKController.ArmIK.PriorJoint.Elbow)
+            // 腕部目標のハンドル
+            if (controller.armIkMode == PreMaidIkController.ArmIK.Mode.Elbow)
             {
                 // 肘と手首に
 
@@ -95,21 +101,45 @@ namespace PreMaid
                 }
             }
 
+            // 頭部目標のハンドル
             if (controller.headTarget)
             {
-                EditorGUI.BeginChangeCheck();
-                Vector3 headTargetPos = Handles.PositionHandle(controller.headTarget.position, Quaternion.identity);
-                Quaternion headRot = Handles.Disc(
-                    controller.headTarget.rotation,
-                    controller.headTarget.position,
-                    headTargetRotAxis,
-                    diskSize, false, diskSnap
-                    );
-
-                if (EditorGUI.EndChangeCheck())
+                switch (controller.headIkMode)
                 {
-                    controller.headTarget.position = headTargetPos;
-                    controller.headTarget.rotation = headRot;
+                    case PreMaidIkController.HeadIK.Mode.Gaze:
+                        EditorGUI.BeginChangeCheck();
+                        Vector3 headTargetPos = Handles.PositionHandle(controller.headTarget.position, Quaternion.identity);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            controller.headTarget.position = headTargetPos;
+                        }
+                        EditorGUI.BeginChangeCheck();
+
+                        Vector3 headOrientationTargetPos = Handles.PositionHandle(controller.HeadOrientationTarget.position, Quaternion.identity);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            controller.HeadOrientationTarget.position = headOrientationTargetPos;
+                        }
+                        break;
+                    case PreMaidIkController.HeadIK.Mode.Rotation:
+                        //// 基部はハンドルを出さない
+                        //EditorGUI.BeginChangeCheck();
+                        //Quaternion headBaseRot = Handles.RotationHandle(
+                        //    controller.headTarget.rotation, controller.headTarget.position
+                        //    );
+                        //if (EditorGUI.EndChangeCheck())
+                        //{
+                        //    controller.headTarget.rotation = headBaseRot;
+                        //}
+                        EditorGUI.BeginChangeCheck();
+                        Quaternion headOrientationRot = Handles.RotationHandle(
+                            controller.HeadOrientationTarget.rotation, controller.HeadOrientationTarget.position
+                            );
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            controller.HeadOrientationTarget.rotation = headOrientationRot;
+                        }
+                        break;
                 }
             }
         }
