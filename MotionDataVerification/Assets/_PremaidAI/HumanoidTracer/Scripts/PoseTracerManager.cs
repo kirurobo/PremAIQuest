@@ -39,10 +39,13 @@ namespace PreMaid.HumanoidTracer
 
 
         [SerializeField] private int currentFPS = 0;
-        
+
         // Start is called before the first frame update
         void Start()
         {
+            // 速度をゆっくりに強制
+            ModelJoint.SetAllJointsMaxSpeed(60f);
+
             _controller = GetComponent<PreMaid.RemoteController.PreMaidController>();
             List<TMP_Dropdown.OptionData> serialPortNamesList = new List<TMP_Dropdown.OptionData>();
 
@@ -115,9 +118,9 @@ namespace PreMaid.HumanoidTracer
                 //50とかでもいいかも
                 if (Mathf.Abs(mecanimServoValue - premaidServoValue) > 10)
                 {
-                    servo.SetServoValueSafeClamp((int) mecanimServoValue);
+                    servo.SetServoValueSafeClamp((int)mecanimServoValue);
                     PreMaidServo tmp = new PreMaidServo(targetServoID);
-                    tmp.SetServoValueSafeClamp((int) mecanimServoValue);
+                    tmp.SetServoValueSafeClamp((int)mecanimServoValue);
                     orders.Add(tmp);
                 }
             }
@@ -129,7 +132,7 @@ namespace PreMaid.HumanoidTracer
             {
                 currentFPS++;
                 //Debug.Log("Servo Num:" + orders.Count);
-                _controller.ApplyPoseFromServos(orders, Mathf.Clamp(orders.Count*2,10,40));
+                _controller.ApplyPoseFromServos(orders, Mathf.Clamp(orders.Count * 2, 10, 40));
             }
 
             if (_initialized == false)
@@ -163,9 +166,9 @@ namespace PreMaid.HumanoidTracer
                     continue;
                 }
 
-                servo.SetServoValueSafeClamp((int) mecanimServoValue);
+                servo.SetServoValueSafeClamp((int)mecanimServoValue);
                 PreMaidServo tmp = new PreMaidServo(targetServoID);
-                tmp.SetServoValueSafeClamp((int) mecanimServoValue);
+                tmp.SetServoValueSafeClamp((int)mecanimServoValue);
                 orders.Add(tmp);
             }
 
@@ -173,8 +176,8 @@ namespace PreMaid.HumanoidTracer
             //つまり20FPSだとたまに送信失敗するけど意外と通る。
             //BT環境が悪かったらもっと速度を落とすとか？
             //cooltime=0.08f  だと12FPS送信になって結構失敗しないです
-            coolTime = 0.05f; 
-            
+            coolTime = 0.05f;
+
             keyFrameTimer = 1f;
             //Debug.Log("全フレーム転送 :" + orders.Count+" FPS:"+currentFPS);
             _controller.ApplyPoseFromServos(orders, 40);
@@ -198,14 +201,14 @@ namespace PreMaid.HumanoidTracer
             keyFrameTimer -= Time.deltaTime;
             if (coolTime <= 0)
             {
-                
+
                 //if (keyFrameTimer <= 0)
                 {
                     ApplyMecanimPoseAll();
                 }
                 //else
                 {
-                  //  ApplyMecanimPoseWithDiff();
+                    //  ApplyMecanimPoseWithDiff();
                 }
             }
         }
