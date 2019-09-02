@@ -5,7 +5,7 @@ using UnityEditor;
 
 namespace PreMaid
 {
-    [CustomEditor(typeof(PreMaidIkController))]
+    [CustomEditor(typeof(PreMaidIKController))]
     public class PreMaidIKControllerEditor : Editor
     {
         public override void OnInspectorGUI()
@@ -18,7 +18,7 @@ namespace PreMaid
             const float diskSize = 0.03f;   // 回転ハンドルのサイズ
             const float diskSnap = 1f;      // スナップするグリッドサイズとのことですが、よくわからない
 
-            PreMaidIkController controller = (PreMaidIkController)target;
+            PreMaidIKController controller = (PreMaidIKController)target;
             if (!controller || !controller.premaidRoot) return;
 
             Vector3 leftTargetRotAxis =
@@ -37,7 +37,7 @@ namespace PreMaid
                 * Vector3.forward;
 
             // 腕部目標のハンドル
-            if (controller.armIkMode == PreMaidIkController.ArmIK.Mode.Elbow)
+            if (controller.armIkMode == PreMaidIKController.ArmIK.Mode.Elbow)
             {
                 // 肘と手首に
 
@@ -106,7 +106,7 @@ namespace PreMaid
             {
                 switch (controller.headIkMode)
                 {
-                    case PreMaidIkController.HeadIK.Mode.Gaze:
+                    case PreMaidIKController.HeadIK.Mode.Gaze:
                         EditorGUI.BeginChangeCheck();
                         Vector3 headTargetPos = Handles.PositionHandle(controller.headTarget.position, Quaternion.identity);
                         if (EditorGUI.EndChangeCheck())
@@ -121,7 +121,7 @@ namespace PreMaid
                             controller.HeadOrientationTarget.position = headOrientationTargetPos;
                         }
                         break;
-                    case PreMaidIkController.HeadIK.Mode.Rotation:
+                    case PreMaidIKController.HeadIK.Mode.Rotation:
                         //// 基部はハンドルを出さない
                         //EditorGUI.BeginChangeCheck();
                         //Quaternion headBaseRot = Handles.RotationHandle(

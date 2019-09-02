@@ -21,7 +21,7 @@ namespace PreMaid.IKSample
             floorTransform = transform;
 
             if (robotRoot) {
-                PreMaidIkController ikController = robotRoot.GetComponent<PreMaidIkController>();
+                PreMaidIKController ikController = robotRoot.GetComponent<PreMaidIKController>();
 
                 if (ikController)
                 {

@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace PreMaid
 {
-    public class PreMaidIkController : MonoBehaviour
+    public class PreMaidIKController : MonoBehaviour
     {
         #region IK solver classes
         /// <summary>
