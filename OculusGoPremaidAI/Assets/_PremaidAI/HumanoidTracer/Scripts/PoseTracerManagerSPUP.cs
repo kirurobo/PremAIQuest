@@ -46,18 +46,19 @@ namespace PreMaid.HumanoidTracer
 
             var portNames = SerialPortUtility.SerialPortUtilityPro.GetConnectedDeviceList(SerialPortUtility.SerialPortUtilityPro.OpenSystem.BluetoothSSP);
 
-
-            foreach (var VARIABLE in portNames)
+            if (portNames != null)
             {
-                TMP_Dropdown.OptionData optionData = new TMP_Dropdown.OptionData(VARIABLE.SerialNumber);
-                serialPortNamesList.Add(optionData);
+                foreach (var VARIABLE in portNames)
+                {
+                    TMP_Dropdown.OptionData optionData = new TMP_Dropdown.OptionData(VARIABLE.SerialNumber);
+                    serialPortNamesList.Add(optionData);
 
-                Debug.Log(VARIABLE);
+                    Debug.Log(VARIABLE);
+                }
+
+                _serialPortsDropdown.ClearOptions();
+                _serialPortsDropdown.AddOptions(serialPortNamesList);
             }
-
-            _serialPortsDropdown.ClearOptions();
-            _serialPortsDropdown.AddOptions(serialPortNamesList);
-
 
             //対象のAnimatorにBoneにHumanoidModelJoint.csのアタッチ漏れがあるかもしれない
             //なので、一旦全部検索して、見つからなかったサーボ情報はspineに全部動的にアタッチする

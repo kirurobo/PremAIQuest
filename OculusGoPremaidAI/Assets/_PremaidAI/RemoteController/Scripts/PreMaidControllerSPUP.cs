@@ -131,7 +131,7 @@ namespace PreMaid.RemoteController
         {
             try
             {
-                _serialPort.DeviceName = deviceName;
+                //_serialPort.DeviceName = deviceName;
                 _serialPort.BaudRate = BaudRate;
 
                 _serialPort.Open();
