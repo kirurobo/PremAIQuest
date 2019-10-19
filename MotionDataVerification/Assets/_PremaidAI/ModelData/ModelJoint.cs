@@ -77,6 +77,7 @@ namespace PreMaid
         /// <summary>
         /// 目標とする角度[deg] maxSpeedを超えない範囲でcurrentAngleがこれに追従する
         /// </summary>
+        [SerializeField]
         private float targetAngle = 0f;
 
         // 初期ローカル姿勢

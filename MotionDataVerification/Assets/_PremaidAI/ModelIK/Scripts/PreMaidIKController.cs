@@ -358,7 +358,7 @@ namespace PreMaid
             /// </summary>
             private void ApplyIK_HandFirst()
             {
-                const float sqrMinDistance = 0.000025f; // 肩に近づきすぎた肘目標点は無視する閾値 [m^2]
+                const float sqrMinDistance = 0.000025f; // 肩に近づきすぎた目標点は無視するための閾値 [m^2]
                 const float maxExtensionAngle = 10f;    // 過伸展の最大角度 [deg]
                 const float maxExtensionLength = 0.05f; // 腕を伸ばしてもこれ以上の距離があれば最大過伸展とする [m]
 
@@ -366,15 +366,15 @@ namespace PreMaid
 
                 Vector3 x0 = shoulderPitch.transform.position;  // UpperArmJointの座標
                 Quaternion invBaseRotation = Quaternion.Inverse(baseTransform.rotation);
-                Vector3 x0h = invBaseRotation * (handTarget.position - x0);    // x0から肘目標点までのベクトル
+                Vector3 x0h = invBaseRotation * (handTarget.position - x0);    // x0から手先目標点までのベクトル
 
                 if ((x0h.y * x0h.y + x0h.z * x0h.z) < sqrMinDistance)
                 {
-                    // 肩ピッチの特異点近傍であれば、回転させない
+                    // 肩ピッチの特異点近傍であれば、肩は回転させない
                 }
                 else
                 {
-                    // 特異点近傍でなければ、回転させる
+                    // 特異点近傍でなければ、肩を回転させる
                     float a0 = sign * Mathf.Atan2(x0h.z, -x0h.y) * Mathf.Rad2Deg; // 肩のX軸周り回転[deg]
                     shoulderPitch.SetServoValue(a0);
                 }
@@ -400,8 +400,8 @@ namespace PreMaid
                     // 腕を伸ばした以上に手首目標点が遠くて三角形にならない場合
                     
                     // 手を伸ばすときには、あえて過伸展として肘を逆に曲げる
-                    float overLen = Mathf.Sqrt(x1h_sqrlen) - (lengthUpperArm + lengthLowerArm);
-                    a3 = sign * maxExtensionAngle * Mathf.Clamp01((overLen - maxExtensionLength) / maxExtensionLength);
+                    float overlen = Mathf.Sqrt(x1h_sqrlen) - (lengthUpperArm + lengthLowerArm);
+                    a3 = sign * maxExtensionAngle * Mathf.Clamp01((overlen - maxExtensionLength) / maxExtensionLength);
                     a1 = sign * Mathf.Atan2(x1h.y, sign * -x1h.x) * Mathf.Rad2Deg - a3 / 2f;
                 }
                 else
@@ -418,6 +418,9 @@ namespace PreMaid
                 lowerArmRoll.SetServoValue(a3);
 
                 // 手首回転
+                Quaternion invWristRotation = Quaternion.Inverse(lowerArmRoll.normalizedRotation);
+                Quaternion rot = invWristRotation * handTarget.rotation;
+                ApplyPartialRotation(rot, handPitch);
             }
 
             public override void DrawGizmos()
