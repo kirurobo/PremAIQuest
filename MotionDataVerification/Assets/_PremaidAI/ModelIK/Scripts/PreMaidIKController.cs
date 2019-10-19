@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace PreMaid
 {
@@ -17,6 +18,48 @@ namespace PreMaid
             public abstract void Initialize();
             public abstract void ApplyIK();
             public abstract void DrawGizmos();
+            
+            /// <summary>
+            /// Quaternion で渡された姿勢のうち、X, Y, Z 軸いずれか周り成分を抽出してサーボ角に反映します
+            /// </summary>
+            /// <param name="rot">目標姿勢</param>
+            /// <param name="joint">指定サーボ</param>
+            /// <returns>回転させた軸成分を除いた残りの回転 Quaternion</returns>
+            internal Quaternion ApplyPartialRotation(Quaternion rot, ModelJoint joint)
+            {
+                Quaternion q = rot;
+                Vector3 axis = Vector3.right;
+                float direction = (joint.isInverse ? -1f : 1f);     // 逆転なら-1
+                switch (joint.targetAxis)
+                {
+                    case ModelJoint.Axis.X:
+                        q.y = q.z = 0;
+                        if (q.x < 0) direction = -direction;
+                        axis = Vector3.right;
+                        break;
+                    case ModelJoint.Axis.Y:
+                        q.x = q.z = 0;
+                        if (q.y < 0) direction = -direction;
+                        axis = Vector3.up;
+                        break;
+                    case ModelJoint.Axis.Z:
+                        q.x = q.y = 0;
+                        if (q.z < 0) direction = -direction;
+                        axis = Vector3.forward;
+                        break;
+                }
+                if (q.w == 0 && q.x == 0 && q.y == 0 && q.z == 0)
+                {
+                    Debug.Log("Joint: " + joint.name + " rotation N/A");
+                    q = Quaternion.identity;
+                }
+                q.Normalize();
+                float angle = Mathf.Acos(q.w) * 2.0f * Mathf.Rad2Deg * direction;
+
+                var actualAngle = joint.SetServoValue(angle);
+
+                return rot * Quaternion.Inverse(q);
+            }
         }
 
         /// <summary>
@@ -40,8 +83,8 @@ namespace PreMaid
             public enum Mode
             {
                 None,       // IKを利用しない
-                Gaze,       // 指定Tranformの座標を向かせる
-                Rotation,   // 指定Transformの方向をトレースする
+                Gaze,       // 指定Transformの座標を向かせる
+                Orientation,   // 指定Transformの方向をトレースする
             }
 
             public override void Initialize()
@@ -94,8 +137,8 @@ namespace PreMaid
                     case Mode.Gaze:
                         ApplyIK_Gaze();
                         break;
-                    case Mode.Rotation:
-                        ApplyIK_Rotation();
+                    case Mode.Orientation:
+                        ApplyIK_Orientation();
                         break;
                 }
             }
@@ -130,17 +173,16 @@ namespace PreMaid
             /// <summary>
             /// 基部と目標のTransformを指定し，基部からの目標相対姿勢に合わせて頭を回す
             /// </summary>
-            private void ApplyIK_Rotation()
+            private void ApplyIK_Orientation()
             {
                 Quaternion invBaseRotation = Quaternion.Inverse(baseTransform.rotation);
                 Vector3 gazeVec = invBaseRotation * (headOrientationTarget.position - headRoll.transform.position);
 
-                Quaternion rot = Quaternion.Inverse(headBaseTarget.rotation) * headOrientationTarget.rotation;
-                Vector3 euler = MathfUtility.QuaternionToEuler(rot, MathfUtility.RotationOrder.ZXY);
-                Debug.Log(rot.eulerAngles + " " + euler);
-                neckYaw.SetServoValue(euler.y);
-                headPitch.SetServoValue(euler.x);
-                headRoll.SetServoValue(euler.z);
+                Quaternion rot = invBaseRotation * headOrientationTarget.rotation;
+                //Debug.log(rot);
+                rot = ApplyPartialRotation(rot, neckYaw);
+                rot = ApplyPartialRotation(rot, headRoll);
+                rot = ApplyPartialRotation(rot, headPitch);
             }
 
             /// <summary>
@@ -316,8 +358,9 @@ namespace PreMaid
             /// </summary>
             private void ApplyIK_HandFirst()
             {
-                // これ以下に肩に近づきすぎた肘目標点は無視する閾値
-                const float sqrMinDistance = 0.000025f;   // [m^2]
+                const float sqrMinDistance = 0.000025f; // 肩に近づきすぎた肘目標点は無視する閾値 [m^2]
+                const float maxExtensionAngle = 10f;    // 過伸展の最大角度 [deg]
+                const float maxExtensionLength = 0.05f; // 腕を伸ばしてもこれ以上の距離があれば最大過伸展とする [m]
 
                 float sign = (isRightSide ? -1f : 1f);  // 左右の腕による方向入れ替え用
 
@@ -344,26 +387,29 @@ namespace PreMaid
                 float a2 = 0f;
                 float a3 = 0f;
 
-                float x1w_sqrlen = x1h.sqrMagnitude;
+                float x1h_sqrlen = x1h.sqrMagnitude;
 
-                if (x1w_sqrlen <= (lengthUpperArm - lengthLowerArm) * (lengthUpperArm - lengthLowerArm))
+                if (x1h_sqrlen <= (lengthUpperArm - lengthLowerArm) * (lengthUpperArm - lengthLowerArm))
                 {
                     // 上腕始点に手首目標点が近すぎて三角形にならない場合
                     a3 = sign * -135f;
                     a1 = sign * 0f;
                 }
-                else if (x1w_sqrlen >= (lengthUpperArm + lengthLowerArm) * (lengthUpperArm + lengthLowerArm))
+                else if (x1h_sqrlen >= (lengthUpperArm + lengthLowerArm) * (lengthUpperArm + lengthLowerArm))
                 {
                     // 腕を伸ばした以上に手首目標点が遠くて三角形にならない場合
-                    a3 = sign * 10f;   // 手を伸ばすときには、あえて過伸展
-                    a1 = sign * Mathf.Atan2(x1h.y, sign * -x1h.x) * Mathf.Rad2Deg - a3;
+                    
+                    // 手を伸ばすときには、あえて過伸展として肘を逆に曲げる
+                    float overLen = Mathf.Sqrt(x1h_sqrlen) - (lengthUpperArm + lengthLowerArm);
+                    a3 = sign * maxExtensionAngle * Mathf.Clamp01((overLen - maxExtensionLength) / maxExtensionLength);
+                    a1 = sign * Mathf.Atan2(x1h.y, sign * -x1h.x) * Mathf.Rad2Deg - a3 / 2f;
                 }
                 else
                 {
                     // 三角形になる場合、余弦定理により肘の角度を求める
-                    float cosx3 = (lengthUpperArm * lengthUpperArm + lengthLowerArm * lengthLowerArm - x1w_sqrlen) / (2f * lengthUpperArm * lengthLowerArm);
+                    float cosx3 = (lengthUpperArm * lengthUpperArm + lengthLowerArm * lengthLowerArm - x1h_sqrlen) / (2f * lengthUpperArm * lengthLowerArm);
                     a3 = sign * (Mathf.Acos(cosx3) * Mathf.Rad2Deg - 180f);
-                    float cosa1d = (lengthUpperArm * lengthUpperArm + x1w_sqrlen - lengthLowerArm * lengthLowerArm) / (2f * lengthUpperArm * Mathf.Sqrt(x1w_sqrlen));
+                    float cosa1d = (lengthUpperArm * lengthUpperArm + x1h_sqrlen - lengthLowerArm * lengthLowerArm) / (2f * lengthUpperArm * Mathf.Sqrt(x1h_sqrlen));
                     float a1sub = Mathf.Acos(cosa1d) * Mathf.Rad2Deg;
                     a1 = sign * (Mathf.Atan2(x1h.y, sign * -x1h.x) * Mathf.Rad2Deg + a1sub);
                 }
@@ -566,10 +612,11 @@ namespace PreMaid
         [Tooltip("頭IKの解き方"), Header("Head")]
         public HeadIK.Mode headIkMode = HeadIK.Mode.Gaze;
 
-        [Tooltip("Gazeでは見つめる先，Orientationでは回転の基部となります。未指定ならば自動生成します")]
-        public Transform headTarget;
+        [FormerlySerializedAs("headTarget")]
+        [Tooltip("Gazeでは見つめる先となります。Orientationでは無視されます")]
+        public Transform headGazeTarget;
 
-        [Tooltip("Gazeでは頭頂部の位置，Orientationでは基部からの姿勢目標となります。未指定ならば自動生成します")]
+        [Tooltip("Orientationでの姿勢目標です。Gazeではロール軸に反映されます")]
         public Transform HeadOrientationTarget;
 
 
@@ -630,10 +677,10 @@ namespace PreMaid
             headIK.neckYaw = GetJointById("05");
             headIK.headPitch = GetJointById("03");
             headIK.headRoll = GetJointById("07");
-            headIK.headBaseTarget = headTarget;
+            headIK.headBaseTarget = headGazeTarget;
             headIK.headOrientationTarget = HeadOrientationTarget;
             headIK.Initialize();
-            headTarget = headIK.headBaseTarget;         // 自動生成されていたら、controller側に代入
+            headGazeTarget = headIK.headBaseTarget;         // 自動生成されていたら、controller側に代入
             HeadOrientationTarget = headIK.headOrientationTarget;         // 自動生成されていたら、controller側に代入
 
             // 左腕IKソルバを準備

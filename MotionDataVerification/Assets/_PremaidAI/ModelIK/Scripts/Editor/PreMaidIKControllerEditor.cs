@@ -102,26 +102,32 @@ namespace PreMaid
             }
 
             // 頭部目標のハンドル
-            if (controller.headTarget)
+            if (controller.headGazeTarget)
             {
                 switch (controller.headIkMode)
                 {
                     case PreMaidIKController.HeadIK.Mode.Gaze:
                         EditorGUI.BeginChangeCheck();
-                        Vector3 headTargetPos = Handles.PositionHandle(controller.headTarget.position, Quaternion.identity);
-                        if (EditorGUI.EndChangeCheck())
+                        if (controller.headGazeTarget != controller.HeadOrientationTarget)
                         {
-                            controller.headTarget.position = headTargetPos;
+                            Vector3 headTargetPos = Handles.PositionHandle(controller.headGazeTarget.position, Quaternion.identity);
+                            Vector3 headOrientationTargetPos = Handles.PositionHandle(controller.HeadOrientationTarget.position, Quaternion.identity);
+                            if (EditorGUI.EndChangeCheck())
+                            {
+                                controller.headGazeTarget.position = headTargetPos;
+                                controller.HeadOrientationTarget.position = headOrientationTargetPos;
+                            }
                         }
-                        EditorGUI.BeginChangeCheck();
-
-                        Vector3 headOrientationTargetPos = Handles.PositionHandle(controller.HeadOrientationTarget.position, Quaternion.identity);
-                        if (EditorGUI.EndChangeCheck())
+                        else
                         {
-                            controller.HeadOrientationTarget.position = headOrientationTargetPos;
+                            Vector3 headTargetPos = Handles.PositionHandle(controller.headGazeTarget.position, Quaternion.identity);
+                            if (EditorGUI.EndChangeCheck())
+                            {
+                                controller.headGazeTarget.position = headTargetPos;
+                            }
                         }
                         break;
-                    case PreMaidIKController.HeadIK.Mode.Rotation:
+                    case PreMaidIKController.HeadIK.Mode.Orientation:
                         //// 基部はハンドルを出さない
                         //EditorGUI.BeginChangeCheck();
                         //Quaternion headBaseRot = Handles.RotationHandle(
@@ -133,7 +139,8 @@ namespace PreMaid
                         //}
                         EditorGUI.BeginChangeCheck();
                         Quaternion headOrientationRot = Handles.RotationHandle(
-                            controller.HeadOrientationTarget.rotation, controller.HeadOrientationTarget.position
+                            controller.HeadOrientationTarget.rotation, 
+                            controller.HeadOrientationTarget.position
                             );
                         if (EditorGUI.EndChangeCheck())
                         {

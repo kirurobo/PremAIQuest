@@ -11,6 +11,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
 using static PreMaid.ServoConstants;
 
@@ -27,7 +28,7 @@ namespace PreMaid.HumanoidTracer
         /// <summary>
         /// 動かす対象のモデル
         /// </summary>
-        [Tooltip("反映先ロボットモデルです。それ自体にアタッチされていれば未指定で構いません")]
+        [Tooltip("反映先ロボットモデルです。それ自体にアタッチされていれば未指定で構いません")] [SuppressMessage("ReSharper", "InconsistentNaming")]
         private Transform premaidRoot;
 
         [Tooltip("ここで指定した部位は動かしません")]
