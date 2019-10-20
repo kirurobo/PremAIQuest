@@ -252,6 +252,7 @@ namespace PreMaid
             float lengthShoulder;
             float lengthUpperArm;
             float lengthLowerArm;
+            float zShoulderToHand;
 
             public override void Initialize()
             {
@@ -268,7 +269,7 @@ namespace PreMaid
                 lengthShoulder = (upperArmRoll.transform.position - shoulderPitch.transform.position).magnitude;
                 lengthUpperArm = (lowerArmRoll.transform.position - upperArmRoll.transform.position).magnitude;
                 lengthLowerArm = (handTip.position - lowerArmRoll.transform.position).magnitude;
-
+                zShoulderToHand = (handTip.position - shoulderPitch.transform.position).z;  // 手は肩の回転軸からわずかに前に出ている。その距離[m]
                 
                 // 肘の目標点が無ければ自動生成
                 if (!elbowTarget)
@@ -362,26 +363,65 @@ namespace PreMaid
                 const float maxExtensionAngle = 10f;    // 過伸展の最大角度 [deg]
                 const float maxExtensionLength = 0.05f; // 腕を伸ばしてもこれ以上の距離があれば最大過伸展とする [m]
 
-                float sign = (isRightSide ? -1f : 1f);  // 左右の腕による方向入れ替え用
+                float sign = (isRightSide ? 1f : -1f);  // 左右の腕による方向入れ替え用
 
                 Vector3 x0 = shoulderPitch.transform.position;  // UpperArmJointの座標
                 Quaternion invBaseRotation = Quaternion.Inverse(baseTransform.rotation);
                 Vector3 x0h = invBaseRotation * (handTarget.position - x0);    // x0から手先目標点までのベクトル
 
-                if ((x0h.y * x0h.y + x0h.z * x0h.z) < sqrMinDistance)
+                #region 肩関節の回転を求める
+                float zh = x0h.z;
+                float yh = x0h.y;
+                float yt, zt;
+                float w = zShoulderToHand;
+                float sqrW = w * w;
+
+                float sqrXh = zh * zh + yh * yh;
+                float a0;
+
+                if (Mathf.Approximately(sqrXh, sqrW))
                 {
-                    // 肩ピッチの特異点近傍であれば、肩は回転させない
+                    a0 = sign * Mathf.Atan2(-yh, zh) * Mathf.Rad2Deg; // 肩のX軸周り回転[deg]
+                }
+                else if (sqrXh < sqrW)
+                {
+                    // 近すぎるので回転なし
+                    a0 = 0f;
                 }
                 else
                 {
-                    // 特異点近傍でなければ、肩を回転させる
-                    float a0 = sign * Mathf.Atan2(x0h.z, -x0h.y) * Mathf.Rad2Deg; // 肩のX軸周り回転[deg]
-                    shoulderPitch.SetServoValue(a0);
+                    if (Mathf.Approximately(yh, 0f))
+                    {
+                        zt = w * w / zh;
+                        yt = w * Mathf.Sqrt(1f - ((w * w) / (zh * zh)));
+                        if (zh < 0) yt = -yt;
+                    }
+                    else if (Mathf.Approximately(zh, 0f))
+                    {
+                        yt = w * w / yh;
+                        zt = w * Mathf.Sqrt(1f - ((w * w) / (yh * yh)));
+                        if (yh >= 0) zt = -zt;
+                    }
+                    else
+                    {
+                        if (yh < 0)
+                        {
+                            zt = ((w * w * zh) + w * Mathf.Sqrt((sqrXh - w * w) * yh * yh)) / sqrXh;
+                        }
+                        else
+                        {
+                            zt = ((w * w * zh) - w * Mathf.Sqrt((sqrXh - w * w) * yh * yh)) / sqrXh;
+                        }
+                        yt = ((w * w) - (zh * zt)) / yh;
+                    }
+                    a0 = sign * Mathf.Atan2(-yt, zt) * Mathf.Rad2Deg;
                 }
+                #endregion
+                shoulderPitch.SetServoValue(a0);
 
-                Vector3 x1 = upperArmRoll.transform.position;
+                Vector3 x1c = upperArmRoll.transform.position + shoulderPitch.normalizedRotation * Vector3.forward * zShoulderToHand;
                 Quaternion invShoulderRotation = Quaternion.Inverse(shoulderPitch.normalizedRotation);
-                Vector3 x1h = invShoulderRotation * (handTarget.position - x1);
+                Vector3 x1h = invShoulderRotation * (handTarget.position - x1c);
 
                 float a1 = 0f;
                 float a2 = 0f;
@@ -392,7 +432,7 @@ namespace PreMaid
                 if (x1h_sqrlen <= (lengthUpperArm - lengthLowerArm) * (lengthUpperArm - lengthLowerArm))
                 {
                     // 上腕始点に手首目標点が近すぎて三角形にならない場合
-                    a3 = sign * -135f;
+                    a3 = sign * 135f;
                     a1 = sign * 0f;
                 }
                 else if (x1h_sqrlen >= (lengthUpperArm + lengthLowerArm) * (lengthUpperArm + lengthLowerArm))
@@ -401,17 +441,17 @@ namespace PreMaid
                     
                     // 手を伸ばすときには、あえて過伸展として肘を逆に曲げる
                     float overlen = Mathf.Sqrt(x1h_sqrlen) - (lengthUpperArm + lengthLowerArm);
-                    a3 = sign * maxExtensionAngle * Mathf.Clamp01((overlen - maxExtensionLength) / maxExtensionLength);
-                    a1 = sign * Mathf.Atan2(x1h.y, sign * -x1h.x) * Mathf.Rad2Deg - a3 / 2f;
+                    a3 = -sign * maxExtensionAngle * Mathf.Clamp01((overlen - maxExtensionLength) / maxExtensionLength);
+                    a1 = -sign * Mathf.Atan2(x1h.y, sign * x1h.x) * Mathf.Rad2Deg - a3 / 2f;
                 }
                 else
                 {
                     // 三角形になる場合、余弦定理により肘の角度を求める
                     float cosx3 = (lengthUpperArm * lengthUpperArm + lengthLowerArm * lengthLowerArm - x1h_sqrlen) / (2f * lengthUpperArm * lengthLowerArm);
-                    a3 = sign * (Mathf.Acos(cosx3) * Mathf.Rad2Deg - 180f);
+                    a3 = -sign * (Mathf.Acos(cosx3) * Mathf.Rad2Deg - 180f);
                     float cosa1d = (lengthUpperArm * lengthUpperArm + x1h_sqrlen - lengthLowerArm * lengthLowerArm) / (2f * lengthUpperArm * Mathf.Sqrt(x1h_sqrlen));
                     float a1sub = Mathf.Acos(cosa1d) * Mathf.Rad2Deg;
-                    a1 = sign * (Mathf.Atan2(x1h.y, sign * -x1h.x) * Mathf.Rad2Deg + a1sub);
+                    a1 = -sign * (Mathf.Atan2(x1h.y, sign * x1h.x) * Mathf.Rad2Deg + a1sub);
                 }
                 upperArmRoll.SetServoValue(a1);
                 upperArmPitch.SetServoValue(a2);
