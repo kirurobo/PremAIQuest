@@ -574,7 +574,8 @@ namespace PreMaid
                 Quaternion targetRotation = invBaseRotation * footTarget.rotation;
 
                 // Unityでは Z,Y,X の順番なので、ロボットとは一致しないはず
-                Vector3 rt = targetRotation.eulerAngles;
+                
+                Vector3 rt = MathfUtility.QuaternionToEuler(targetRotation, MathfUtility.RotationOrder.YXZ);
                 float yaw = -rt.y;
                 float pitch = -rt.x;
                 float roll = -rt.z;
