@@ -13,6 +13,7 @@ namespace PreMaid.RemoteController
     {
         private PreMaidControllerSPUP _preMaidPoseController = null;
         // Start is called before the first frame update
+
         void Start()
         {
             _preMaidPoseController = GetComponent<PreMaidControllerSPUP>();

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using System.Threading;
+using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 
@@ -26,6 +27,16 @@ namespace PreMaid.RemoteController
         private const int BaudRate = 115200;
 
         [SerializeField] private bool _serialPortOpen = false;
+
+        public Text text;
+        private void Log(string str)
+        {
+            if (text)
+            {
+                text.text += str + "\n";
+            }
+        }
+
 
         public bool SerialPortOpen
         {
@@ -99,6 +110,8 @@ namespace PreMaid.RemoteController
             EditorApplication.playModeStateChanged += OnChangedPlayMode;
 
 #endif
+
+            if (text) text.text = "";
         }
 
 
@@ -136,6 +149,8 @@ namespace PreMaid.RemoteController
 
                 _serialPort.Open();
                 Debug.Log("シリアルポート:" + _serialPort.Port + " 接続成功");
+                Log("シリアルポート:" + _serialPort.Port + " 接続成功");
+                Log("Name:" + _serialPort.DeviceName + " Vender:" + _serialPort.VendorID + " Serial:" + _serialPort.SerialNumber) ;
                 _serialPortOpen = true;
 
                 ShouldNotExit = true;
@@ -144,6 +159,7 @@ namespace PreMaid.RemoteController
             catch (Exception e)
             {
                 Debug.LogWarning("シリアルポートOpen失敗しました、ペアリング済みか、プリメイドAIのポートか確認してください");
+                Log("シリアルポート 接続失敗");
                 Console.WriteLine(e);
                 return false;
             }
@@ -162,6 +178,7 @@ namespace PreMaid.RemoteController
         public void CloseSerialPort()
         {
             Debug.Log("シリアルポートをクローズします");
+            Log("シリアルポートをクローズします");
             _serialPortOpen = false;
 
 
@@ -171,12 +188,23 @@ namespace PreMaid.RemoteController
             }
         }
 
+        public void SendBatteryCheck()
+        {
+            if (!_serialPortOpen) return;
+
+            string hex = "07 01 00 02 00 02 06";
+
+            Log("送信:" + hex);
+            _serialPort.Write(PreMaidUtility.HexStringToByteArray(hex));
+        }
+
         public void ReadStringBinary(object data)
         {
             //本当はここのカウントもバッファ溜めつつ見た方が良い…
             //readCount = _serialPort.Read(readBuffer, 0, readBuffer.Length);
             var readBuffer = data as byte[];
             var receivedString = PreMaidUtility.DumpBytesToHexString(readBuffer, readBuffer.Length);
+            Log("受信:" + receivedString);
 
             //バースト転送モード
             bool burstMode = false;

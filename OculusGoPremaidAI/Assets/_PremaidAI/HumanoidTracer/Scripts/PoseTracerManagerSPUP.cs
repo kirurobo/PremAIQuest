@@ -96,6 +96,15 @@ namespace PreMaid.HumanoidTracer
             }
         }
 
+        /// <summary>
+        /// UGUIのOpenボタンを押したときの処理
+        /// </summary>
+        public void Send()
+        {
+            var willOpenSerialPortName = _serialPortsDropdown.options[_serialPortsDropdown.value].text;
+            _controller.OpenSerialPort(willOpenSerialPortName);
+         }
+
 
         IEnumerator PreMaidParamInitilize()
         {
