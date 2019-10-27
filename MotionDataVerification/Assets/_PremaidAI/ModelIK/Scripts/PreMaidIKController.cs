@@ -514,6 +514,8 @@ namespace PreMaid
 
             public Transform footTarget;
 
+            private Vector3[] hierarchy;
+
             /// <summary>
             /// 右脚なら true、左脚なら false にしておく
             /// </summary>
@@ -522,6 +524,7 @@ namespace PreMaid
             public Mode method = Mode.None;
 
             private Vector3 xo01, xo12, xo23, xo34, xo45, xo15, xo06;
+            private float a1offset = 0f;
 
             /// <summary>
             /// アルゴリズムの指定
@@ -551,6 +554,7 @@ namespace PreMaid
 
                 // ※これが呼ばれる時点（初期状態）ではモデルは T-Pose であること
                 Quaternion invBaseRotation = Quaternion.Inverse(baseTransform.rotation);
+                xo01 = invBaseRotation * (upperLegRoll.transform.position - upperLegYaw.transform.position);
                 xo12 = invBaseRotation * (upperLegPitch.transform.position - upperLegRoll.transform.position);
                 xo23 = invBaseRotation * (kneePitch.transform.position - upperLegPitch.transform.position);
                 xo34 = invBaseRotation * (anklePitch.transform.position - kneePitch.transform.position);
@@ -582,10 +586,13 @@ namespace PreMaid
 
                 float a0, a1, a2, a3, a4, a5;
                 a0 = yaw;
+                upperLegYaw.SetServoValue(a0);
 
+                // ヨーを除いた平面上での目標座標
+                
                 Vector3 dx = invBaseRotation * (upperLegYaw.transform.position + (baseTransform.rotation * xo06) - footTarget.position);    // 初期姿勢時足元に対する足目標の変位
                 dx = Quaternion.AngleAxis(-a0, Vector3.up) * dx;     // ヨーがある場合は目標変位も座標変換
-
+                
                 dx.z = 0f;  // ひとまず Z は無視してのIKを実装
 
                 if (dx.sqrMagnitude < sqrMinDistance)
@@ -620,7 +627,6 @@ namespace PreMaid
                     a3 = a2 + a4;
                 }
 
-                upperLegYaw.SetServoValue(a0);
                 upperLegRoll.SetServoValue(a1);
                 upperLegPitch.SetServoValue(a2);
                 kneePitch.SetServoValue(a3);
