@@ -61,13 +61,13 @@ namespace PreMaid.HumanoidTracer
             } else
             {
                 // Android実機でのデバッグ用
-                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-4FFA"));
-                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-94F6"));
                 serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-9C50"));
+                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-4FFA"));
+                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-50D6"));
 
                 _serialPortsDropdown.ClearOptions();
                 _serialPortsDropdown.AddOptions(serialPortNamesList);
-                _serialPortsDropdown.SetValueWithoutNotify(serialPortNamesList.Count - 1);
+                _serialPortsDropdown.SetValueWithoutNotify(0);
             }
 
             //対象のAnimatorにBoneにHumanoidModelJoint.csのアタッチ漏れがあるかもしれない
@@ -114,8 +114,34 @@ namespace PreMaid.HumanoidTracer
         {
             var willOpenSerialPortName = _serialPortsDropdown.options[_serialPortsDropdown.value].text;
             _controller.OpenSerialPort(willOpenSerialPortName);
-         }
+        }
 
+        public void OnToggle0(bool check)
+        {
+            if (check) OnToggleChanged(0);
+        }
+
+        public void OnToggle1(bool check)
+        {
+            if (check) OnToggleChanged(1);
+        }
+
+        public void OnToggle2(bool check)
+        {
+            if (check) OnToggleChanged(2);
+        }
+
+        /// <summary>
+        /// ドロップダウンが操作できない場合に、トグルでポート選択できるようにする
+        /// </summary>
+        /// <param name="value"></param>
+        private void OnToggleChanged(int value)
+        {
+            if (value >= _serialPortsDropdown.options.Count) return;
+
+            _serialPortsDropdown.value = value;
+            _serialPortsDropdown.RefreshShownValue();
+        }
 
         IEnumerator PreMaidParamInitilize()
         {

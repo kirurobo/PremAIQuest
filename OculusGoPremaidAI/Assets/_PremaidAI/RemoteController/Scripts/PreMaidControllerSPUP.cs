@@ -28,12 +28,12 @@ namespace PreMaid.RemoteController
 
         [SerializeField] private bool _serialPortOpen = false;
 
-        public Text text;
+        public Text debugText;
         private void Log(string str)
         {
-            if (text)
+            if (debugText)
             {
-                text.text += str + "\n";
+                debugText.text += str + "\n";
             }
         }
 
@@ -111,7 +111,7 @@ namespace PreMaid.RemoteController
 
 #endif
 
-            if (text) text.text = "";
+            if (debugText) debugText.text = "";
         }
 
 
@@ -134,7 +134,7 @@ namespace PreMaid.RemoteController
             }
         }
 #endif
-
+        
         /// <summary>
         /// シリアルポートを開く
         /// </summary>
