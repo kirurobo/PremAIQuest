@@ -144,7 +144,7 @@ namespace PreMaid.RemoteController
         {
             try
             {
-                //_serialPort.DeviceName = deviceName;
+                _serialPort.DeviceName = deviceName;
                 _serialPort.BaudRate = BaudRate;
 
                 _serialPort.Open();
@@ -192,7 +192,7 @@ namespace PreMaid.RemoteController
         {
             if (!_serialPortOpen) return;
 
-            string hex = "07 01 00 02 00 02 06";
+            string hex = "07010002000206";
 
             Log("送信:" + hex);
             _serialPort.Write(PreMaidUtility.HexStringToByteArray(hex));
@@ -223,6 +223,47 @@ namespace PreMaid.RemoteController
             receivedQueue.Enqueue(receivedString);
         }
 
+        /// <summary>
+        /// シリアルポートへのキュー送信
+        /// </summary>
+        private void Sync()
+        {
+            var sendingCache = string.Empty; //送信失敗時に連続送信する
+
+            //バースト転送モード
+            bool burstMode = false;
+            if (SerialPortOpen && _serialPort != null && _serialPort.IsOpened())
+            {
+                //PCから送る予定のキューが入っているかチェック
+                if (sendingQueue.IsEmpty == false)
+                {
+                    var willSendString = string.Empty;
+                    while (sendingQueue.TryDequeue(out willSendString))
+                    {
+                        if (burstMode)
+                        {
+                            burstMode = false;
+                        }
+
+                        sendingCache = willSendString;
+                        byte[] willSendBytes =
+                            PreMaidUtility.BuildByteDataFromStringOrder(willSendString);
+
+                        _serialPort.Write(willSendBytes);
+                    }
+                }
+
+                //送信失敗してた場合、無理矢理にキャッシュしてた最後のポーズ命令を連続送信する
+                //これで遅延を最小限にする
+                if (burstMode)
+                {
+                    byte[] willSendBytes =
+                        PreMaidUtility.BuildByteDataFromStringOrder(sendingCache);
+
+                    _serialPort.Write(willSendBytes);
+                }
+            }
+        }
 
         /// <summary>
         /// 現在のサーボ値を適用する1フレームだけのモーションを送る
@@ -306,7 +347,7 @@ namespace PreMaid.RemoteController
         {
             if (SerialPortOpen == false)
             {
-                Debug.LogWarning("ポーズ指定されたときにシリアルポートが開いていません");
+                //Debug.LogWarning("ポーズ指定されたときにシリアルポートが開いていません");
                 return;
             }
 
@@ -440,6 +481,8 @@ namespace PreMaid.RemoteController
             {
                 return;
             }
+
+            Sync();
 
             //受信バッファ、バイナリで届くので区切りをどうしようか悩み中
             //一旦、素朴に先頭に命令長が来るでしょう、というつもりで書きます。

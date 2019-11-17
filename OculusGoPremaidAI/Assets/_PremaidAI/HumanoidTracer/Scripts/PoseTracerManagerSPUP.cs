@@ -58,6 +58,16 @@ namespace PreMaid.HumanoidTracer
 
                 _serialPortsDropdown.ClearOptions();
                 _serialPortsDropdown.AddOptions(serialPortNamesList);
+            } else
+            {
+                // Android実機でのデバッグ用
+                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-4FFA"));
+                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-94F6"));
+                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-9C50"));
+
+                _serialPortsDropdown.ClearOptions();
+                _serialPortsDropdown.AddOptions(serialPortNamesList);
+                _serialPortsDropdown.SetValueWithoutNotify(serialPortNamesList.Count - 1);
             }
 
             //対象のAnimatorにBoneにHumanoidModelJoint.csのアタッチ漏れがあるかもしれない
@@ -93,6 +103,7 @@ namespace PreMaid.HumanoidTracer
             if (openSuccess)
             {
                 StartCoroutine(PreMaidParamInitilize());
+                Debug.Log("コルーチンを開始しました");
             }
         }
 

@@ -4,8 +4,5 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes:
-  - enabled: 1
-    path: Assets/_PremaidAI/HumanoidTracer/Scenes/HumanoidTracerGo.unity
-    guid: ef03164a2d7dc2f4d948756eec7b1cea
+  m_Scenes: []
   m_configObjects: {}
