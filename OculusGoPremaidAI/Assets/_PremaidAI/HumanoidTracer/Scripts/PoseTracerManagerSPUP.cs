@@ -34,7 +34,7 @@ namespace PreMaid.HumanoidTracer
         private float keyFrameTimer = 0f;
 
         private float lastSentTime = 0f;    // 最後に送信したタイムスタンプ
-        private float sendingInterval = 0.5f;   // 送信間隔
+        private float sendingInterval = 0.1f;   // 送信間隔
 
         List<PreMaidServo> latestServos = new List<PreMaidServo>();
 
@@ -47,8 +47,8 @@ namespace PreMaid.HumanoidTracer
         private const uint BITMASK_LEGS = 0b00010101010101010101010101000000;
 
         // 送出する関節はこれにあてはまるものだけとする
-        //public uint jointMask = BITMASK_HEAD | BITMASK_ARMS;
-        public uint jointMask = BITMASK_HEAD;
+        public uint jointMask;
+        //public uint jointMask = BITMASK_HEAD;
 
 
         // Start is called before the first frame update
@@ -83,6 +83,8 @@ namespace PreMaid.HumanoidTracer
                 _serialPortsDropdown.AddOptions(serialPortNamesList);
                 _serialPortsDropdown.SetValueWithoutNotify(0);
             }
+
+            jointMask = (BITMASK_HEAD | BITMASK_ARMS);
 
             // 関節速度制限
             ModelJoint.SetAllJointsMaxSpeed(90f);
@@ -180,10 +182,10 @@ namespace PreMaid.HumanoidTracer
         /// </summary>
         /// <param name="servo"></param>
         /// <returns></returns>
-        bool CheckJointMask(PreMaidServo servo)
+        bool CheckJointMask(ModelJoint servo)
         {
-            int id = servo.GetServoId();
-            return ((jointMask & (1 << id)) > 0);
+            int id = servo.servoNo;
+            return ((jointMask & (uint)(1 << id)) > 0);
         }
         
         /// <summary>
@@ -195,28 +197,14 @@ namespace PreMaid.HumanoidTracer
 
             var servos = _controller.Servos;
 
-            List<PreMaidServo> orders = new List<PreMaidServo>();
+            List<ModelJoint> orders = new List<ModelJoint>();
 
-            foreach (var VARIABLE in _joints)
+            foreach (var servo in servos)
             {
-                var mecanimServoValue = VARIABLE.CurrentServoValue();
-
-                var servo = servos.Find(x => x.ServoPositionEnum == VARIABLE.TargetServo);
-                
                 // ビットマスクで対象になっていなければ送らない
                 if (!CheckJointMask(servo)) continue;
 
-                int premaidServoValue = servo.GetServoValue();
-
-                //20以上サーボの値が変わってたら命令とする
-                //50とかでもいいかも
-                if (Mathf.Abs(mecanimServoValue - premaidServoValue) > 10)
-                {
-                    servo.SetServoValueSafeClamp((int) mecanimServoValue);
-                    PreMaidServo tmp = new PreMaidServo(VARIABLE.TargetServo);
-                    tmp.SetServoValueSafeClamp((int) mecanimServoValue);
-                    orders.Add(tmp);
-                }
+                orders.Add(servo);
             }
 
             //ここでordersに差分だけ送れます
@@ -245,24 +233,14 @@ namespace PreMaid.HumanoidTracer
 
             var servos = _controller.Servos;
 
-            List<PreMaidServo> orders = new List<PreMaidServo>();
+            List<ModelJoint> orders = new List<ModelJoint>();
 
-            foreach (var VARIABLE in _joints)
+            foreach (var servo in servos)
             {
-                var mecanimServoValue = VARIABLE.CurrentServoValue();
-
-                var servo = servos.Find(x => x.ServoPositionEnum == VARIABLE.TargetServo);
-
                 // ビットマスクで対象になっていなければ送らない
                 if (!CheckJointMask(servo)) continue;
 
-                int premaidServoValue = servo.GetServoValue();
-
-
-                servo.SetServoValueSafeClamp((int) mecanimServoValue);
-                PreMaidServo tmp = new PreMaidServo(VARIABLE.TargetServo);
-                tmp.SetServoValueSafeClamp((int) mecanimServoValue);
-                orders.Add(tmp);
+                orders.Add(servo);
             }
 
             //ここでordersに差分だけ送れます。speed=40でcooltime=0.05fでいけた！？！？

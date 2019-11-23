@@ -20,8 +20,10 @@ namespace PreMaid.RemoteController
     /// </summary>
     public class PreMaidControllerSPUP : MonoBehaviour
     {
-        [SerializeField] List<PreMaidServo> _servos = new List<PreMaidServo>();
+        [SerializeField] List<ModelJoint> _servos = new List<ModelJoint>();
 
+        public Transform target;
+        
         public SerialPortUtility.SerialPortUtilityPro _serialPort = null;
         private const int BaudRate = 115200;
 
@@ -51,7 +53,7 @@ namespace PreMaid.RemoteController
         public Action OnInitializeServoDefines = null;
 
 
-        public List<PreMaidServo> Servos
+        public List<ModelJoint> Servos
         {
             get { return _servos; }
             set { _servos = value; }
@@ -89,10 +91,9 @@ namespace PreMaid.RemoteController
 
             //PreMaidServo.AllServoPositionDump();
             //foreach (PreMaidServo.ServoPosition item in Enum.GetValues(typeof(PreMaidServo.ServoPosition)))
-            foreach (PreMaidServo.ServoPosition item in PreMaidServo.servoPositions)
+            var servos = target.GetComponentsInChildren<ModelJoint>();
+            foreach (var servo in servos)
             {
-                PreMaidServo servo = new PreMaidServo(item);
-
                 Servos.Add(servo);
             }
 
@@ -246,7 +247,7 @@ namespace PreMaid.RemoteController
                         byte[] willSendBytes =
                             PreMaidUtility.BuildByteDataFromStringOrder(willSendString);
 
-                        Debug.Log(Time.time + "s Send:" + willSendString);
+                        //Debug.Log(Time.time + "s Send:" + willSendString);
 
                         _serialPort.Write(willSendBytes);
                     }
@@ -298,7 +299,7 @@ namespace PreMaid.RemoteController
             string ret = "08 18 00 " + speed.ToString("X2");
             //そして各サーボぼ値を入れる
 
-            var index = _servos.FindIndex(x => x.GetServoId() == 2);
+            var index = _servos.FindIndex(x => x.servoNo == 2);
 
             ret += " " + _servos[index].GetServoIdAndValueString();
 
@@ -342,7 +343,7 @@ namespace PreMaid.RemoteController
         /// <summary>
         /// 指定されたサーボ値を適用してシリアル通信でプリメイドAI実機に送る
         /// </summary>
-        public void ApplyPoseFromServos(IEnumerable<PreMaidServo> servos, int speed = 10)
+        public void ApplyPoseFromServos(IEnumerable<ModelJoint> servos, int speed = 10)
         {
             if (SerialPortOpen == false)
             {
@@ -408,7 +409,7 @@ namespace PreMaid.RemoteController
 
             foreach (var VARIABLE in Servos)
             {
-                allServo += " " + VARIABLE.GetServoIdString() + " " + stretchProp;
+                allServo += " " + VARIABLE.ServoID + " " + stretchProp;
             }
 
             allServo += "FF";
@@ -432,7 +433,7 @@ namespace PreMaid.RemoteController
 
             foreach (var VARIABLE in Servos)
             {
-                allServo += " " + VARIABLE.GetServoIdString() + " " + speedProp;
+                allServo += " " + VARIABLE.ServoID + " " + speedProp;
             }
 
             allServo += "FF";

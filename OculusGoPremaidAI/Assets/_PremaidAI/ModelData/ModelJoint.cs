@@ -262,6 +262,27 @@ namespace PreMaid
 
 
         /// <summary>
+        /// プリメイドのシリアル経由で送る時の値を返す
+        /// 0E 4C 1D(0E番のサーボを7500に)みたいな文字列が出力される
+        /// </summary>
+        /// <returns></returns>
+        public string GetServoIdAndValueString()
+        {
+            return $"{ServoID} {GetServoValueString()}";
+        }
+
+        /// <summary>
+        /// 7500だったら"4C 1D"が返ってくる
+        /// </summary>
+        /// <returns></returns>
+        public string GetServoValueString()
+        {
+            var tmp = PreMaidUtility.ConvertEndian(((int)currentServoValue).ToString("X2"));
+
+            return $"{tmp[0]}{tmp[1]} {tmp[2]}{tmp[3]}";
+        }
+
+        /// <summary>
         /// 指定IDのModelJointを取得
         /// </summary>
         /// <param name="servoId">"0C"などのサーボID</param>
