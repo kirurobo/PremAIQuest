@@ -14,6 +14,7 @@ public class VRTracerToMotion : MonoBehaviour
     public Transform previewModel;          // 表示用のモデル
 
     public Canvas uiCanvas;                 // 操作用のUI
+    public Transform calibrationText;       // キャリブレーション時に表示するオブジェクト
 
     public float scale = 0.2f;
 
@@ -59,11 +60,13 @@ public class VRTracerToMotion : MonoBehaviour
         if (!ikController) ikController = GetComponent<PreMaidIKController>();
         if (!previewModel) previewModel = ikController.transform;
 
+        if (calibrationText) calibrationText.gameObject.SetActive(false);
+
         originalHeadPosition = ikController.headTransform.position;
         originalRightHandPosition = ikController.rightHandTransform.position;
         originalLeftHandPosition = ikController.leftHandTransform.position;
 
-        Debug.Log(originalHeadPosition + " / " + originalRightHandPosition + " / " + originalLeftHandPosition);
+        //Debug.Log(originalHeadPosition + " / " + originalRightHandPosition + " / " + originalLeftHandPosition);
 
         Vector3 lossyScale = ikController.transform.lossyScale;
         Vector3 vec = ikController.transform.position - ikController.headTransform.position;
@@ -178,6 +181,7 @@ public class VRTracerToMotion : MonoBehaviour
         // キャリブレーション開始
         isCalibrating = true;
         SetVisible(false);
+        if (calibrationText) calibrationText.gameObject.SetActive(true);
         
         // 手を真横にする時間待つ
         yield return new WaitForSeconds(2f);
@@ -206,7 +210,7 @@ public class VRTracerToMotion : MonoBehaviour
         if (leftHandCalibration.Count > 0)
             leftPos = leftHandCalibration.Aggregate(Vector3.zero, (s, v) => s + v) / leftHandCalibration.Count;
 
-        Debug.Log(headPos + " / " + rightPos + " / " + leftPos);
+        //Debug.Log(headPos + " / " + rightPos + " / " + leftPos);
 
         // 大きさ調整
         const float lenOffset = -0.5f;
@@ -217,5 +221,6 @@ public class VRTracerToMotion : MonoBehaviour
         // キャリブレーション終了
         isCalibrating = false;
         SetVisible(true);
+        if (calibrationText) calibrationText.gameObject.SetActive(false);
     }
 }
