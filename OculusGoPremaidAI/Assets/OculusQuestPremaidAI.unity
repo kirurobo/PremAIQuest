@@ -249,7 +249,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Unity Mecanim Tracing Demo
+  m_Text: Oculus Quest - Premaid AI
 --- !u!222 &19592678
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -383,6 +383,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400004, guid: 126d619cf4daa52469682f85c1378b4a, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2037080, guid: 126d619cf4daa52469682f85c1378b4a, type: 3}
+      propertyPath: m_OcclusionCulling
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -911,6 +915,36 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 353476062}
   m_CullTransparentMesh: 0
+--- !u!1 &383283771
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 383283772}
+  m_Layer: 0
+  m_Name: HmdAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &383283772
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 383283771}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -0.1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 100538176}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &419849318
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1813,12 +1847,12 @@ PrefabInstance:
     - target: {fileID: 4468315750184057250, guid: 98b48069fc12f594eb11a5ee24119a87,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.8
+      value: -0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4468315750184057250, guid: 98b48069fc12f594eb11a5ee24119a87,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4468315750184057250, guid: 98b48069fc12f594eb11a5ee24119a87,
         type: 3}
@@ -1860,6 +1894,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1291446459480970548, guid: 98b48069fc12f594eb11a5ee24119a87,
+        type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 98b48069fc12f594eb11a5ee24119a87, type: 3}
 --- !u!1 &1018695616 stripped
@@ -1880,21 +1919,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 18874796f62ae25438f39db32ae4bc86, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  premaidRoot: {fileID: 8319883245948824308}
-  leftHandTarget: {fileID: 100538178}
-  rightHandTarget: {fileID: 100538177}
+  premaidRoot: {fileID: 0}
+  headIkMode: 2
+  headGazeTarget: {fileID: 0}
+  HeadOrientationTarget: {fileID: 0}
+  armIkMode: 2
+  leftHandTarget: {fileID: 0}
+  rightHandTarget: {fileID: 0}
   leftElbowTarget: {fileID: 0}
   rightElbowTarget: {fileID: 0}
-  headTarget: {fileID: 100538176}
+  legIkMode: 0
   leftFootTarget: {fileID: 0}
   rightFootTarget: {fileID: 0}
-  priorJoint: 2
 --- !u!95 &1018695618 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 1291446459480970548, guid: 98b48069fc12f594eb11a5ee24119a87,
     type: 3}
   m_PrefabInstance: {fileID: 1018695615}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1018695619
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1018695616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 582ee0728a5f7514196161cb3a5600c5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  headTransform: {fileID: 383283772}
+  rightHandTransform: {fileID: 100538177}
+  leftHandTransform: {fileID: 100538178}
+  ikController: {fileID: 1018695617}
+  previewModel: {fileID: 0}
+  scale: 1
 --- !u!1 &1022272476
 GameObject:
   m_ObjectHideFlags: 0
@@ -4188,9 +4248,3 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e7ad06672d8eba046ae910584b3e41e0, type: 3}
---- !u!4 &8319883245948824308 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8319883246338140036, guid: e7ad06672d8eba046ae910584b3e41e0,
-    type: 3}
-  m_PrefabInstance: {fileID: 8319883245948824306}
-  m_PrefabAsset: {fileID: 0}

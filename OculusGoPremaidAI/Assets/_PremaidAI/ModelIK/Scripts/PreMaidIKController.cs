@@ -709,7 +709,7 @@ namespace PreMaid
         private ModelJoint[] _joints;
 
         // Start is called before the first frame update
-        void Start()
+        void Awake()
         {
             if (!premaidRoot)
             {
