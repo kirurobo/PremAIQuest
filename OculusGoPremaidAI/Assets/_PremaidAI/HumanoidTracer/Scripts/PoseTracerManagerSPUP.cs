@@ -33,11 +33,24 @@ namespace PreMaid.HumanoidTracer
         //キーフレームは1秒ごとに打つ
         private float keyFrameTimer = 0f;
 
+        private float lastSentTime = 0f;    // 最後に送信したタイムスタンプ
+        private float sendingInterval = 0.5f;   // 送信間隔
+
         List<PreMaidServo> latestServos = new List<PreMaidServo>();
 
 
         [SerializeField] private int currentFPS = 0;
-        
+
+        // 関係するジョイントの番号を1としたビットマスク。右端の桁が0x00、その左が0x01、…
+        private const uint BITMASK_HEAD = 0b00000000000000000000000010101000;
+        private const uint BITMASK_ARMS = 0b00000000101010101010001000010100;
+        private const uint BITMASK_LEGS = 0b00010101010101010101010101000000;
+
+        // 送出する関節はこれにあてはまるものだけとする
+        //public uint jointMask = BITMASK_HEAD | BITMASK_ARMS;
+        public uint jointMask = BITMASK_HEAD;
+
+
         // Start is called before the first frame update
         void Start()
         {
@@ -61,14 +74,18 @@ namespace PreMaid.HumanoidTracer
             } else
             {
                 // Android実機でのデバッグ用
-                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-9C50"));
                 serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-4FFA"));
                 serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-50D6"));
+                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-9C50"));
+                serialPortNamesList.Add(new TMP_Dropdown.OptionData("RNBT-94F6"));
 
                 _serialPortsDropdown.ClearOptions();
                 _serialPortsDropdown.AddOptions(serialPortNamesList);
                 _serialPortsDropdown.SetValueWithoutNotify(0);
             }
+
+            // 関節速度制限
+            ModelJoint.SetAllJointsMaxSpeed(90f);
 
             //対象のAnimatorにBoneにHumanoidModelJoint.csのアタッチ漏れがあるかもしれない
             //なので、一旦全部検索して、見つからなかったサーボ情報はspineに全部動的にアタッチする
@@ -86,6 +103,17 @@ namespace PreMaid.HumanoidTracer
                         jointScript.TargetServo = item;
                     }
                 }
+
+                // 手首だけは最高速度を高くしておく
+                var modeljoints = target.GetComponentsInChildren<ModelJoint>();
+                foreach (ModelJoint j in modeljoints)
+                {
+                    if (j.ServoID == "15" || j.ServoID == "17")
+                    {
+                        j.maxSpeed = 180f;
+                    }
+                }
+
             }
 
             _joints = target.GetComponentsInChildren<HumanoidModelJoint>();
@@ -116,30 +144,27 @@ namespace PreMaid.HumanoidTracer
             _controller.OpenSerialPort(willOpenSerialPortName);
         }
 
-        public void OnToggle0(bool check)
+        /// <summary>
+        /// ドロップダウンで選択されているものを一つ次に進める
+        /// </summary>
+        public void ForwardDropdown()
         {
-            if (check) OnToggleChanged(0);
-        }
+            int index = _serialPortsDropdown.value + 1;
+            if (index >= _serialPortsDropdown.options.Count) index = 0;
 
-        public void OnToggle1(bool check)
-        {
-            if (check) OnToggleChanged(1);
-        }
-
-        public void OnToggle2(bool check)
-        {
-            if (check) OnToggleChanged(2);
+            _serialPortsDropdown.value = index;
+            _serialPortsDropdown.RefreshShownValue();
         }
 
         /// <summary>
-        /// ドロップダウンが操作できない場合に、トグルでポート選択できるようにする
+        /// ドロップダウンで選択されているものを一つ前に戻す
         /// </summary>
-        /// <param name="value"></param>
-        private void OnToggleChanged(int value)
+        public void BackwardDropdown()
         {
-            if (value >= _serialPortsDropdown.options.Count) return;
+            int index = _serialPortsDropdown.value - 1;
+            if (index < 0) index = 0;
 
-            _serialPortsDropdown.value = value;
+            _serialPortsDropdown.value = index;
             _serialPortsDropdown.RefreshShownValue();
         }
 
@@ -151,10 +176,23 @@ namespace PreMaid.HumanoidTracer
         }
 
         /// <summary>
+        /// ビットマスクと照合して送出対象の関節ならtrue
+        /// </summary>
+        /// <param name="servo"></param>
+        /// <returns></returns>
+        bool CheckJointMask(PreMaidServo servo)
+        {
+            int id = servo.GetServoId();
+            return ((jointMask & (1 << id)) > 0);
+        }
+        
+        /// <summary>
         /// 現在のAnimatorについているサーボの値を参照しながら差分だけ送る
         /// </summary>
         void ApplyMecanimPoseWithDiff()
         {
+            if ((Time.time - lastSentTime) < sendingInterval) return;
+
             var servos = _controller.Servos;
 
             List<PreMaidServo> orders = new List<PreMaidServo>();
@@ -164,6 +202,9 @@ namespace PreMaid.HumanoidTracer
                 var mecanimServoValue = VARIABLE.CurrentServoValue();
 
                 var servo = servos.Find(x => x.ServoPositionEnum == VARIABLE.TargetServo);
+                
+                // ビットマスクで対象になっていなければ送らない
+                if (!CheckJointMask(servo)) continue;
 
                 int premaidServoValue = servo.GetServoValue();
 
@@ -187,6 +228,7 @@ namespace PreMaid.HumanoidTracer
                 //Debug.Log("Servo Num:" + orders.Count);
                 _controller.ApplyPoseFromServos(orders, Mathf.Clamp(orders.Count*2,10,40));
             }
+            lastSentTime = Time.time;
 
             if (_initialized == false)
             {
@@ -199,6 +241,8 @@ namespace PreMaid.HumanoidTracer
         /// </summary>
         void ApplyMecanimPoseAll()
         {
+            if ((Time.time - lastSentTime) < sendingInterval) return;
+
             var servos = _controller.Servos;
 
             List<PreMaidServo> orders = new List<PreMaidServo>();
@@ -208,6 +252,9 @@ namespace PreMaid.HumanoidTracer
                 var mecanimServoValue = VARIABLE.CurrentServoValue();
 
                 var servo = servos.Find(x => x.ServoPositionEnum == VARIABLE.TargetServo);
+
+                // ビットマスクで対象になっていなければ送らない
+                if (!CheckJointMask(servo)) continue;
 
                 int premaidServoValue = servo.GetServoValue();
 
@@ -229,6 +276,7 @@ namespace PreMaid.HumanoidTracer
             _controller.ApplyPoseFromServos(orders, 40);
 
             currentFPS = 0;
+            lastSentTime = Time.time;
 
             if (_initialized == false)
             {
@@ -238,10 +286,10 @@ namespace PreMaid.HumanoidTracer
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.A))
-            {
-                target.SetTrigger("TestMotion");
-            }
+            //if (Input.GetKeyDown(KeyCode.A))
+            //{
+            //    target.SetTrigger("TestMotion");
+            //}
         }
 
         void LateUpdate()

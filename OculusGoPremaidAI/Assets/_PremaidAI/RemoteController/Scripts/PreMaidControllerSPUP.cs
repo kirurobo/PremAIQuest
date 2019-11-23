@@ -23,7 +23,6 @@ namespace PreMaid.RemoteController
         [SerializeField] List<PreMaidServo> _servos = new List<PreMaidServo>();
 
         public SerialPortUtility.SerialPortUtilityPro _serialPort = null;
-        private string portName = "COM7";
         private const int BaudRate = 115200;
 
         [SerializeField] private bool _serialPortOpen = false;
@@ -31,6 +30,7 @@ namespace PreMaid.RemoteController
         public Text debugText;
         private void Log(string str)
         {
+            Debug.Log(str);
             if (debugText)
             {
                 debugText.text += str + "\n";
@@ -148,7 +148,6 @@ namespace PreMaid.RemoteController
                 _serialPort.BaudRate = BaudRate;
 
                 _serialPort.Open();
-                Debug.Log("シリアルポート:" + _serialPort.Port + " 接続成功");
                 Log("シリアルポート:" + _serialPort.Port + " 接続成功");
                 Log("Name:" + _serialPort.DeviceName + " Vender:" + _serialPort.VendorID + " Serial:" + _serialPort.SerialNumber) ;
                 _serialPortOpen = true;
@@ -158,8 +157,7 @@ namespace PreMaid.RemoteController
             }
             catch (Exception e)
             {
-                Debug.LogWarning("シリアルポートOpen失敗しました、ペアリング済みか、プリメイドAIのポートか確認してください");
-                Log("シリアルポート 接続失敗");
+                Log("シリアルポートOpen失敗しました、ペアリング済みか、プリメイドAIのポートか確認してください");
                 Console.WriteLine(e);
                 return false;
             }
@@ -177,7 +175,6 @@ namespace PreMaid.RemoteController
 
         public void CloseSerialPort()
         {
-            Debug.Log("シリアルポートをクローズします");
             Log("シリアルポートをクローズします");
             _serialPortOpen = false;
 
@@ -204,7 +201,7 @@ namespace PreMaid.RemoteController
             //readCount = _serialPort.Read(readBuffer, 0, readBuffer.Length);
             var readBuffer = data as byte[];
             var receivedString = PreMaidUtility.DumpBytesToHexString(readBuffer, readBuffer.Length);
-            Log("受信:" + receivedString);
+            //Log("受信:" + receivedString);
 
             //バースト転送モード
             bool burstMode = false;
@@ -248,6 +245,8 @@ namespace PreMaid.RemoteController
                         sendingCache = willSendString;
                         byte[] willSendBytes =
                             PreMaidUtility.BuildByteDataFromStringOrder(willSendString);
+
+                        Debug.Log(Time.time + "s Send:" + willSendString);
 
                         _serialPort.Write(willSendBytes);
                     }
@@ -501,7 +500,7 @@ namespace PreMaid.RemoteController
                     //異様にバッファが溜まったら捨てる
                     if (bufferedString.Length > 100)
                     {
-                        Debug.Log("破棄します:" + bufferedString);
+                        //Debug.Log("破棄します:" + bufferedString);
                         bufferedString = string.Empty;
                         return;
                     }
