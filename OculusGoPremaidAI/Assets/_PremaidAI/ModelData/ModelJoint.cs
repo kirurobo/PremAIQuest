@@ -77,6 +77,7 @@ namespace PreMaid
         /// <summary>
         /// 目標とする角度[deg] maxSpeedを超えない範囲でcurrentAngleがこれに追従する
         /// </summary>
+        [SerializeField]
         private float targetAngle = 0f;
 
         // 初期ローカル姿勢
@@ -168,6 +169,7 @@ namespace PreMaid
         /// 外部からサーボ角度[deg]を指定する
         /// </summary>
         /// <param name="angleEulerDegree"></param>
+        /// <returns>可動範囲適用後の角度[deg]</returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public float SetServoValue(float angleEulerDegree)
         {
