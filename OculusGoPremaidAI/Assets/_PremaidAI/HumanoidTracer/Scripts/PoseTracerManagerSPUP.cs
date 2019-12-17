@@ -41,15 +41,6 @@ namespace PreMaid.HumanoidTracer
 
         [SerializeField] private int currentFPS = 0;
 
-        // 関係するジョイントの番号を1としたビットマスク。右端の桁が0x00、その左が0x01、…
-        private const uint BITMASK_HEAD = 0b00000000000000000000000010101000;
-        private const uint BITMASK_ARMS = 0b00000000101010101010001000010100;
-        private const uint BITMASK_LEGS = 0b00010101010101010101010101000000;
-
-        // 送出する関節はこれにあてはまるものだけとする
-        public uint jointMask;
-        //public uint jointMask = BITMASK_HEAD;
-
 
         // Start is called before the first frame update
         void Start()
@@ -84,7 +75,8 @@ namespace PreMaid.HumanoidTracer
                 _serialPortsDropdown.SetValueWithoutNotify(0);
             }
 
-            jointMask = (BITMASK_HEAD | BITMASK_ARMS);
+            // 上半身だけを操作対象とする
+            _controller.jointMask = (uint)(PreMaidControllerSPUP.JointMask.UpperBody);
 
             // 関節速度制限
             ModelJoint.SetAllJointsMaxSpeed(90f);
@@ -129,6 +121,8 @@ namespace PreMaid.HumanoidTracer
         {
             var willOpenSerialPortName = _serialPortsDropdown.options[_serialPortsDropdown.value].text;
             Debug.Log(willOpenSerialPortName + "を開きます");
+            _initialized = false;
+
             var openSuccess = _controller.OpenSerialPort(willOpenSerialPortName);
             if (openSuccess)
             {
@@ -138,12 +132,10 @@ namespace PreMaid.HumanoidTracer
         }
 
         /// <summary>
-        /// UGUIのOpenボタンを押したときの処理
+        /// UGUIのテスト送信ボタンを押したときの処理
         /// </summary>
         public void Send()
         {
-            var willOpenSerialPortName = _serialPortsDropdown.options[_serialPortsDropdown.value].text;
-            _controller.OpenSerialPort(willOpenSerialPortName);
         }
 
         /// <summary>
@@ -174,20 +166,16 @@ namespace PreMaid.HumanoidTracer
         {
             yield return new WaitForSeconds(1f);
             //ここらへんでサーボパラメータ入れたりする
-            Invoke(nameof(ApplyMecanimPoseWithDiff), 3f);
+            Invoke(nameof(ApplyStretch), 2f);
+            yield return new WaitForSeconds(1f);
+            Invoke(nameof(ApplyMecanimPoseWithDiff), 2f);
         }
 
-        /// <summary>
-        /// ビットマスクと照合して送出対象の関節ならtrue
-        /// </summary>
-        /// <param name="servo"></param>
-        /// <returns></returns>
-        bool CheckJointMask(ModelJoint servo)
+        void ApplyStretch()
         {
-            int id = servo.servoNo;
-            return ((jointMask & (uint)(1 << id)) > 0);
+            _controller.ForceAllServoStretchProperty(40, 70);
         }
-        
+
         /// <summary>
         /// 現在のAnimatorについているサーボの値を参照しながら差分だけ送る
         /// </summary>
@@ -201,9 +189,6 @@ namespace PreMaid.HumanoidTracer
 
             foreach (var servo in servos)
             {
-                // ビットマスクで対象になっていなければ送らない
-                if (!CheckJointMask(servo)) continue;
-
                 orders.Add(servo);
             }
 
@@ -237,9 +222,6 @@ namespace PreMaid.HumanoidTracer
 
             foreach (var servo in servos)
             {
-                // ビットマスクで対象になっていなければ送らない
-                if (!CheckJointMask(servo)) continue;
-
                 orders.Add(servo);
             }
 

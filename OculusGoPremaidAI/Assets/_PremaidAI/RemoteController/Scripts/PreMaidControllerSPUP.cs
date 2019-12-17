@@ -59,6 +59,19 @@ namespace PreMaid.RemoteController
             set { _servos = value; }
         }
 
+        // 関係するジョイントの番号を1としたビットマスク。右端の桁が0x00、その左が0x01、…
+        public enum JointMask : uint {
+            Head        = 0b00000000000000000000000010101000,
+            Arms        = 0b00000000101010101010001000010100,
+            Legs        = 0b00010101010101010101010101000000,
+            UpperBody   = 0b00000000101010101010001010111100,
+        }
+
+        /// <summary>
+        /// 操作対象と"する"関節
+        /// </summary>
+        public uint jointMask;
+
 
         /// <summary>
         /// プリメイドAIに命令を送るときはここにEnqueueする
@@ -266,6 +279,17 @@ namespace PreMaid.RemoteController
         }
 
         /// <summary>
+        /// ビットマスクと照合して送出対象の関節ならtrue
+        /// </summary>
+        /// <param name="servo"></param>
+        /// <returns></returns>
+        bool CheckJointMask(ModelJoint servo)
+        {
+            int id = servo.servoNo;
+            return ((jointMask & (uint)(1 << id)) > 0);
+        }
+
+        /// <summary>
         /// 現在のサーボ値を適用する1フレームだけのモーションを送る
         /// </summary>
         /// <returns></returns>
@@ -353,16 +377,21 @@ namespace PreMaid.RemoteController
 
             speed = Mathf.Clamp(speed, 1, 255);
 
-            int servoNum = servos.Count();
-            int orderLen = servoNum * 3 + 5; //命令長はサーボ個数が1個だったら0x08, サーボ個数が25個だったら0x50(80)になる
-
             //決め打ちのポーズ命令+スピード(小さい方が速くて、255が最大に遅い)
-            string ret = orderLen.ToString("X2") + " 18 00 " + speed.ToString("X2");
+            string ret = " 18 00 " + speed.ToString("X2");
+
             //そして各サーボぼ値を入れる
+            int servoNum = 0;
             foreach (var VARIABLE in servos)
             {
+                // ビットマスクで対象になっていなければ送らない
+                if (!CheckJointMask(VARIABLE)) continue;
                 ret += " " + VARIABLE.GetServoIdAndValueString();
+                servoNum++;
             }
+
+            int orderLen = servoNum * 3 + 5; //命令長はサーボ個数が1個だったら0x08, サーボ個数が25個だったら0x50(80)になる
+            ret = orderLen.ToString("X2") + ret;    // コマンド先頭は数に合わせてここで設定
 
             ret += " FF"; //パリティビットを仮で挿入する;
 
@@ -396,48 +425,69 @@ namespace PreMaid.RemoteController
         /// 全サーボのストレッチパラメータ指定命令
         /// 18 19 10 10 3C 18 3C 1C 3C 14 3C 0C 3C 0E 3C 16 3C 1A 3C 12 3C 0A 3C 07
         /// </summary>
-        public void ForceAllServoStretchProperty(int stretch)
+        /// <param name="stretch">ストレッチ指令 1～127</param>
+        /// <param name="extStretch">操作対象外サーボのストレッチ指令。負だと指令しない</param>
+        public void ForceAllServoStretchProperty(int stretch, int extStretch = -1)
         {
             var targetStretch = Mathf.Clamp(stretch, 1, 127);
+            var notTargetStretch = extStretch < 0 ? 60 : Mathf.Clamp(extStretch, 1, 127);
 
             string stretchProp = string.Format("{0:X2}", targetStretch);
+            string notTargetStretchProp = string.Format("{0:X2}", notTargetStretch);
 
-            //0x36=54個なので
-            //最初の3個+ 25サーボ*2パラメータ+ チェックバイト
-            string allServo =
-                "36 19 10";
-
+            string command = "";
+            int servoNum = 0;
             foreach (var VARIABLE in Servos)
             {
-                allServo += " " + VARIABLE.ServoID + " " + stretchProp;
+                if (CheckJointMask(VARIABLE))
+                {
+                    command += " " + VARIABLE.ServoID + " " + stretchProp;
+                    servoNum++;
+                }
+                else if (extStretch >= 0)
+                {
+                    command += " " + VARIABLE.ServoID + " " + notTargetStretchProp;
+                    servoNum++;
+                }
             }
 
-            allServo += "FF";
-            sendingQueue.Enqueue(PreMaidUtility.RewriteXorString(allServo)); //ストレッチ命令を送る
+            int orderLen = servoNum * 2 + 4;        // 命令長
+            command = orderLen.ToString("X2") + " 19 10" + command + " FF";     // コマンド先頭は数に合わせてここで設定
+            sendingQueue.Enqueue(PreMaidUtility.RewriteXorString(command));     // ストレッチ命令を送る
         }
 
         /// <summary>
         /// 全サーボのスピードパラメータ指定命令
-        /// 18 19 10 10 3C 18 3C 1C 3C 14 3C 0C 3C 0E 3C 16 3C 1A 3C 12 3C 0A 3C 07
         /// </summary>
-        public void ForceAllServoSpeedProperty(int speed)
+        /// <param name="speed">速度指令 1～127</param>
+        /// <param name="extSpeed">操作対象外サーボのスピード指令。負だと指令しない</param>
+        public void ForceAllServoSpeedProperty(int speed, int extSpeed = -1)
         {
             var targetSpeed = Mathf.Clamp(speed, 1, 127);
+            var notTargetSpeedd = extSpeed < 0 ? 60 : Mathf.Clamp(extSpeed, 1, 127);
 
-            string speedProp = string.Format("{0:X2}", targetSpeed);
+            string targetSpeedProp = string.Format("{0:X2}", targetSpeed);
+            string notTargetSpeedProp = string.Format("{0:X2}", notTargetSpeedd);
 
-            //0x36=54個なので
-            //最初の3個+ 25サーボ*2パラメータ+ チェックバイト
-            string allServo =
-                "36 19 00";
-
+            string command = "";
+            int servoNum = 0;
             foreach (var VARIABLE in Servos)
             {
-                allServo += " " + VARIABLE.ServoID + " " + speedProp;
+                if (CheckJointMask(VARIABLE))
+                {
+                    command += " " + VARIABLE.ServoID + " " + targetSpeedProp;
+                    servoNum++;
+                }
+                else if (extSpeed >= 0)
+                {
+                    command += " " + VARIABLE.ServoID + " " + notTargetSpeedProp;
+                    servoNum++;
+                }
             }
 
-            allServo += "FF";
-            sendingQueue.Enqueue(PreMaidUtility.RewriteXorString(allServo)); //ストレッチ命令を送る
+            int orderLen = servoNum * 2 + 4;        // 命令長
+            command = orderLen.ToString("X2") + " 19 00" + command + " FF";     // コマンド先頭は数に合わせてここで設定
+            sendingQueue.Enqueue(PreMaidUtility.RewriteXorString(command));     // 命令を送る
         }
 
         /// <summary>
