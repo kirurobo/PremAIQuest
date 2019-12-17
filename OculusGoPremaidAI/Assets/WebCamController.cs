@@ -29,16 +29,29 @@ public class WebCamController : MonoBehaviour
 
     bool SelectWebCam(int step = 0)
     {
-        // すでにWebCamTextureが設定済みなら、停止
-        if (webCamTexture) webCamTexture.Stop();
-
         WebCamDevice[] devices = WebCamTexture.devices;
-
-        // 次のカメラにする場合はインデックスを増やす
-        webCamIndex += step;
-        if (webCamIndex >= devices.Length) webCamIndex = 0;
         if (devices.Length < 1) return false;
 
+        // 次のカメラにする場合はインデックスを増やす
+        int newIndex = webCamIndex + step;
+        if (newIndex >= devices.Length) newIndex = 0;
+        if (newIndex < 0) newIndex = devices.Length - 1;
+
+        // すでにWebCamTextureが設定済みの場合
+        if (webCamTexture)
+        {
+            // カメラが変わらなければ何もせずそのまま表示し続ける
+            if (newIndex == webCamIndex)
+            {
+                return true;
+            }
+            else
+            {
+                webCamTexture.Stop();
+            }
+        }
+
+        webCamIndex = newIndex;
         webCamTexture = new WebCamTexture(devices[webCamIndex].name, this.width, this.height, this.fps);
         GetComponent<Renderer>().material.mainTexture = webCamTexture;
         webCamTexture.Play();
