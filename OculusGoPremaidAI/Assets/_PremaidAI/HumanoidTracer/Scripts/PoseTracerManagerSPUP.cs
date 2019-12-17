@@ -32,6 +32,7 @@ namespace PreMaid.HumanoidTracer
 
         //キーフレームは1秒ごとに打つ
         private float keyFrameTimer = 0f;
+        private bool enableKeyframe = false;
 
         private float lastSentTime = 0f;    // 最後に送信したタイムスタンプ
         private float sendingInterval = 0.1f;   // 送信間隔
@@ -132,10 +133,21 @@ namespace PreMaid.HumanoidTracer
         }
 
         /// <summary>
-        /// UGUIのテスト送信ボタンを押したときの処理
+        /// UGUIのCloseボタンを押したときの処理
         /// </summary>
-        public void Send()
+        public void Close()
         {
+            _initialized = false;
+
+            _controller.CloseSerialPort();
+        }
+
+        /// <summary>
+        /// UGUIのLegsトグルを押したときの処理
+        /// </summary>
+        public void EnableKeyframe(bool enabled)
+        {
+            enableKeyframe = enabled;
         }
 
         /// <summary>
@@ -164,16 +176,20 @@ namespace PreMaid.HumanoidTracer
 
         IEnumerator PreMaidParamInitilize()
         {
+            // 上半身だけを操作対象とする
+            _controller.jointMask = (uint)(PreMaidControllerSPUP.JointMask.UpperBody);
+
+
             yield return new WaitForSeconds(1f);
             //ここらへんでサーボパラメータ入れたりする
-            Invoke(nameof(ApplyStretch), 2f);
+            //Invoke(nameof(ApplyStretch), 1f);
             yield return new WaitForSeconds(1f);
-            Invoke(nameof(ApplyMecanimPoseWithDiff), 2f);
+            Invoke(nameof(ApplyMecanimPoseWithDiff), 1f);
         }
 
         void ApplyStretch()
         {
-            _controller.ForceAllServoStretchProperty(40, 70);
+            _controller.ForceAllServoStretchProperty(40, 100);
         }
 
         /// <summary>
@@ -193,13 +209,14 @@ namespace PreMaid.HumanoidTracer
             }
 
             //ここでordersに差分だけ送れます
-            coolTime = orders.Count * 0.005f; //25個あると0.08くらい、1個だと0.01くらいのクールタイムが良い
+            int count = 12;     // orders.Count
+            coolTime = count * 0.005f; //25個あると0.08くらい、1個だと0.01くらいのクールタイムが良い
 
             if (orders.Count > 0)
             {
                 currentFPS++;
                 //Debug.Log("Servo Num:" + orders.Count);
-                _controller.ApplyPoseFromServos(orders, Mathf.Clamp(orders.Count*2,10,40));
+                _controller.ApplyPoseFromServos(orders, Mathf.Clamp(count * 2,10,40));
             }
             lastSentTime = Time.time;
 
@@ -264,13 +281,15 @@ namespace PreMaid.HumanoidTracer
             if (coolTime <= 0)
             {
                 
-                //if (keyFrameTimer <= 0)
+                if (keyFrameTimer <= 0 && enableKeyframe)
                 {
+                    _controller.jointMask = (uint)PreMaidControllerSPUP.JointMask.FullBody;
                     ApplyMecanimPoseAll();
+                    _controller.jointMask = (uint)PreMaidControllerSPUP.JointMask.UpperBody;
                 }
-                //else
+                else
                 {
-                  //  ApplyMecanimPoseWithDiff();
+                    ApplyMecanimPoseWithDiff();
                 }
             }
         }
