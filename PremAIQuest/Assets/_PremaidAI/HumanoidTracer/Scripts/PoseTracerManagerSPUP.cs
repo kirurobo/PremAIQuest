@@ -168,6 +168,7 @@ namespace PreMaid.HumanoidTracer
         public void BackwardDropdown()
         {
             int index = _serialPortsDropdown.value - 1;
+            if (index < 0) index = _serialPortsDropdown.options.Count - 1;
             if (index < 0) index = 0;
 
             _serialPortsDropdown.value = index;

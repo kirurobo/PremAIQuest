@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using PreMaid;
 using System.Linq;
+using System.Data.SqlTypes;
 
 public class VRTracerToMotion : MonoBehaviour
 {
@@ -28,6 +29,8 @@ public class VRTracerToMotion : MonoBehaviour
     private Vector3 originalHeadPosition;
     private Vector3 originalRightHandPosition;
     private Vector3 originalLeftHandPosition;
+    private Vector3 originalModelPosition;
+    private Quaternion originalModelRotation;
 
     private bool isCalibrating = false;     // キャリブレーション中ならばtrueにしておく
 
@@ -66,6 +69,12 @@ public class VRTracerToMotion : MonoBehaviour
         originalRightHandPosition = ikController.rightHandTransform.position;
         originalLeftHandPosition = ikController.leftHandTransform.position;
 
+        if (previewModel)
+        {
+            originalModelPosition = previewModel.position;
+            originalModelRotation = previewModel.rotation;
+        }
+
         //Debug.Log(originalHeadPosition + " / " + originalRightHandPosition + " / " + originalLeftHandPosition);
 
         Vector3 lossyScale = ikController.transform.lossyScale;
@@ -77,7 +86,7 @@ public class VRTracerToMotion : MonoBehaviour
     void Update()
     {
         const float scaleChangeCoef = 0.005f;
-        const float translationSpeed = 0.2f;
+        const float translationSpeed = 0.5f;
         //const float previewRotationSpeed = 60f;
 
         // HMDをかけているときだけ実行
@@ -100,7 +109,7 @@ public class VRTracerToMotion : MonoBehaviour
             }
 
             // 左手人差し指または中指トリガーが押されていれば、左手を動かす
-            if (OVRInput.Get(OVRInput.RawButton.RIndexTrigger) || OVRInput.Get(OVRInput.RawButton.RHandTrigger))
+            if (OVRInput.Get(OVRInput.RawButton.LIndexTrigger) || OVRInput.Get(OVRInput.RawButton.LHandTrigger))
             {
                 ikController.leftHandTarget.position = scale * (leftHandTransform.position - bodyPosition) + modelHeadPosition;
                 // コントローラの正面と、元の手の初期姿勢は異なるため補正が必要
@@ -120,22 +129,45 @@ public class VRTracerToMotion : MonoBehaviour
         {
             ToggleUI();
         }
-
-        // PrimaryThumbstick を押し込みながら上下でサイズ調整
+        
+        // スティック操作
         if (OVRInput.Get(OVRInput.Button.PrimaryThumbstick))
         {
+            // PrimaryThumbstick を押し込みながら上下でサイズ調整
             scale *= Mathf.Pow(10f, OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick).y * scaleChangeCoef);
             scale = Mathf.Clamp(scale, 0.05f, 4.0f);
+            if (previewModel)
+            {
+                previewModel.localScale = Vector3.one * scale;
+            }
             //ikController.transform.localScale = Vector3.one * scale;
+        }
+        else if(OVRInput.Get(OVRInput.Button.SecondaryThumbstick))
+        {
+            // SecondaryThumbstick が押し込まれたら位置、回転、サイズをリセット
+            scale = 1.0f;
+            if (previewModel)
+            {
+                previewModel.localScale = Vector3.one * scale;
+                previewModel.position = originalModelPosition;
+            }
         }
         else
         {
-
+            // モデル位置の調整
             if (previewModel)
             {
                 Vector2 pvec= OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick) * translationSpeed * Time.deltaTime;
                 Vector2 svec = OVRInput.Get(OVRInput.Axis2D.SecondaryThumbstick) * translationSpeed * Time.deltaTime;
-                previewModel.position += new Vector3(svec.x, pvec.y, svec.y);
+
+                // 主スティック上下：上下
+                // 主スティック左右：左右
+                // 副スティック上下：前後
+                // 副スティック左右：左右
+                previewModel.position += new Vector3(svec.x + pvec.x, pvec.y, svec.y);
+                
+                //// 回転はHMDやコントローラの位置関係も関わるため今はなし
+                //previewModel.rotation *= Quaternion.Euler(0f, pvec.x * 180f, 0f);
             }
         }
     }

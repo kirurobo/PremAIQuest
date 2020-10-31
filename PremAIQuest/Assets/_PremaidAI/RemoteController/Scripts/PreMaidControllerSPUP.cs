@@ -59,13 +59,14 @@ namespace PreMaid.RemoteController
             set { _servos = value; }
         }
 
-        // 関係するジョイントの番号を1としたビットマスク。右端の桁が0x00、その左が0x01、…
+        // 対象とするジョイントの番号を1としたビットマスク
+        //  右端の桁がID 0x00、その左が0x01、…
         public enum JointMask : uint {
             Head        = 0b00000000000000000000000010101000,
-            Arms        = 0b00000000101010101010001000010100,
+            Arms        = 0b00000000101010101010101000010100,
             Legs        = 0b00010101010101010101010101000000,
-            UpperBody   = 0b00000000101010101010001010111100,
-            FullBody    = 0b00010101111111111111011111111100,
+            UpperBody   = 0b00000000101010101010101010111100,
+            FullBody    = 0b00010101111111111111111111111100,
         }
 
         /// <summary>
@@ -126,7 +127,8 @@ namespace PreMaid.RemoteController
 
 #endif
 
-            if (debugText) debugText.text = "";
+            //// 最初にメッセージを消去
+            //if (debugText) debugText.text = "";
         }
 
 
