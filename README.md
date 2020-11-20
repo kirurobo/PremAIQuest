@@ -23,16 +23,17 @@ Quest1 では、先にキーボードを接続しておくことでペアリン�
 [SideQuest](https://sidequestvr.com/)を使うと便利かも。
 
 ## ペアリング
-### Oculus Quest（初代）の場合
 1. プリメイドAIの電源を入れます
 1. Questで歯車アイコンの設定画面 テスト機能 > Bluetoothペアリング のペアリング ボタン を押します
-1. 「RNBT-○○○○」という機器がプリメイドAIです。番号は特に気にせずペア設定をすればOKです
+1. 「RNBT-○○○○」という機器がプリメイドAIです。番号は特に気にせず「ペア設定」をすればOKです
 ![image](https://user-images.githubusercontent.com/1019117/98305065-7b912580-2004-11eb-9ac2-c776061fdd59.png)
 ![image](https://user-images.githubusercontent.com/1019117/98305642-9ca64600-2005-11eb-98b3-12899661ab52.png)
 
 ### Oculus Quest 2 の場合
-テスト機能で Bluetoothペアリング はあるのですが、機器を選んだ後に「OK」に相当するボタンが表示されず、接続できません…。  
-誰か接続方法をご存じないですかね…。
+~~テスト機能で Bluetoothペアリング はあるのですが、機器を選んだ後に「OK」に相当するボタンが表示されず、接続できません…。  
+誰か接続方法をご存じないですかね…。~~  
+バージョン 23 で「ペア設定する」ボタンも表示されるようになり、接続可能となりました。
+（23.0.0.76.517.256062975で確認）
 
 ## 起動
 アプリ一覧で「すべて」ではなく「提供元不明」を選ぶことで一覧が出ますので、起動できます。
@@ -62,7 +63,8 @@ https://docs.google.com/spreadsheets/d/1c6jqMwkBroCuF74viU_q7dgSQGzacbUW4mJg-957
 
 # Contributors
 - [@GOROman](https://twitter.com/GOROman) … 通信形式解析
-- [@izm](https://twitter.com/izm) … Unityで動作プロジェクト作成, 公開
+- [@izm](https://twitter.com/izm) … Unityプロジェクト作成, 公開
+- [@kirurobo](https://twitter.com/kirurobo) … モーションプレビュー解析,実装,独自Arm,LookAtIK実装
 - [@Schwarz_Sardine](https://twitter.com/Schwarz_Sardine) … FBXモデル作成,高精度FBXモデルの作成
 - [@kazzlog](https://twitter.com/kazzlog) … 直接ポーズ送信の発見, バッテリー残量問い合わせの発見,サーボのストレッチ、スピードパラメータ制御の発見,2桁シリアルポートバグの修正
 - [@shi_k_7](https://twitter.com/shi_k_7) … 可動域修正、minorbugfix
